@@ -6,6 +6,7 @@ const { send } = require("micro");
 const checkAlias = require("hazel-server/lib/aliases");
 
 const v130 = require("./v130.json");
+const pivotVersions = [{ version: "1.3.0", response: v130 }];
 
 const PORT = process.env.PORT || 5000;
 
@@ -23,25 +24,31 @@ const router = Router();
  * https://github.com/Squirrel/Squirrel.Mac/issues/160#issuecomment-171545819
  * TODO: support Windows too (?)
  */
-const pivot = (pivotVersion, response) =>
-  router.get("/update/:platform/:version", (req, res, next) => {
-    const { platform: platformName, version } = req.params;
-    const normalizedPlatform = checkAlias(platformName);
+router.get("/update/:platform/:version", (req, res, next) => {
+  const { platform: platformParam, version } = req.params;
 
-    if (
-      normalizedPlatform == "darwin" &&
-      valid(version) &&
-      lt(version, pivotVersion)
-    ) {
-      send(res, 200, response);
+  /**
+   * SoundCleod's update URL contains the architecture in the platform string
+   * which is not supported by Hazel. Rewrite the request URL by removing the
+   * architecture as SoundCleod was never released for more multiple architectures
+   * on any platform.
+   */
+  const [platform, arch] = platformParam.split("_");
+  const search = new URL(req.url, "http://localhost").search;
+  const newUrl = `/update/${platform}/${req.params.version}${search}`;
+  req.url = newUrl;
 
-      return;
-    } else {
-      next("router");
+  if (checkAlias(platform) == "darwin" && valid(version)) {
+    for (let pivotVersion of pivotVersions) {
+      if (lt(version, pivotVersion.version)) {
+        send(res, 200, pivotVersion.response);
+        return;
+      }
     }
-  });
+  }
 
-pivot("1.3.0", v130);
+  next("router");
+});
 
 http
   .createServer((req, res) => {

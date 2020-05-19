@@ -13,14 +13,17 @@ const v130 = {
 };
 
 async function tests() {
-  // 1.3.0
-  assert.deepEqual(await get(`${baseUrl}/update/mac/1.0.0`), v130);
-  assert.deepEqual(await get(`${baseUrl}/update/mac/1.2.0`), v130);
-  // Not implemented
-  // assert.deepEqual(await get(`${baseUrl}/update/darwin_x64/1.2.0`), v130);
-  assert.deepEqual(await get(`${baseUrl}/update/osx/1.2.0`), v130);
-  assert.notDeepEqual(await get(`${baseUrl}/update/mac/1.3.0`), v130);
-  assert.notDeepEqual(await get(`${baseUrl}/update/win/1.3.0`), v130);
+  // 1.3.0 pivot version
+  assert.deepEqual(await get(`${baseUrl}/update/darwin/1.0.0`), v130, 'Old version to 1.3.0');
+  assert.deepEqual(await get(`${baseUrl}/update/darwin_x64/1.2.0`), v130, 'Old version with arch to 1.3.0');
+  assert.deepEqual(await get(`${baseUrl}/update/osx/1.2.0`), v130), 'Old version with platform alias to 1.3.0';
+  assert.notDeepEqual(await get(`${baseUrl}/update/mac/1.3.0`), v130, '1.3.0 to latest');
+  assert.notDeepEqual(await get(`${baseUrl}/update/win/1.0.0`), v130, 'Old version on Windows to latest');
+  assert.notDeepEqual(await get(`${baseUrl}/update/win/1.3.0`), v130, '1.3.0 on Windows to latest');
+
+  // Non-pivot version
+  assert.notDeepEqual(await get(`${baseUrl}/update/mac/1.3.4`), v130, '1.3.4 to latest');
+  assert.ok((await get(`${baseUrl}/update/mac/1.3.4`)).name, 'Non-pivot version looks like an update response');
 }
 
 tests()
